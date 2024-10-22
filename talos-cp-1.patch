@@ -1,0 +1,14 @@
+machine:
+  network:
+    hostname: talos-cp-1
+    nameservers:
+      - 192.168.42.2
+    interfaces:
+      - interface: enp0s3
+        addresses:
+          - 192.168.42.201/24
+        vip:
+          ip: 192.168.42.210
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.42.1
