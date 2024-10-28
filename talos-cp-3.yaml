@@ -49,6 +49,8 @@ cluster:
         endpoint: https://192.168.42.210:6443
     clusterName: vtalos
     network:
+        cni:
+            name: none
         dnsDomain: cluster.local
         podSubnets:
             - 10.244.0.0/16
@@ -94,6 +96,7 @@ cluster:
     controllerManager:
         image: registry.k8s.io/kube-controller-manager:v1.31.1
     proxy:
+        disabled: true
         image: registry.k8s.io/kube-proxy:v1.31.1
     scheduler:
         image: registry.k8s.io/kube-scheduler:v1.31.1
@@ -107,3 +110,4 @@ cluster:
         ca:
             crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJmVENDQVNPZ0F3SUJBZ0lRV3R3QUFNR2RGeDhMVjJzQ3JwSld1ekFLQmdncWhrak9QUVFEQWpBUE1RMHcKQ3dZRFZRUUtFd1JsZEdOa01CNFhEVEkwTVRBeU1URTJNemd4TlZvWERUTTBNVEF4T1RFMk16Z3hOVm93RHpFTgpNQXNHQTFVRUNoTUVaWFJqWkRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQklTYmlqa0pUVU5YCm1zQTVZYTl3d3R5OWhwcytPYUtwTVNZTmlrWmVlU2ZRTVpkdGExbVRsaHlWOHdzTGxlSFducVBrMXhrenFrOSsKZ05KL1ZwSkQ1N3lqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjRApBUVlJS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVdGhjSDlGdlRBT2pHClc3ZlZ0TU5EVjJVcUJoa3dDZ1lJS29aSXpqMEVBd0lEU0FBd1JRSWdZTlJ0Mzh2b0pRM2lzcmZSbEFvOEdoby8KRkdHZ3Z3d2ovdHAwelhVQ0RBRUNJUURqL3QvbytFYVF3QWUyNnd5Rms2NjMvczI1MGtXSEZJbjhhSW1mTnBqYwpyQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
             key: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUZpcnhyYzVEZ0NZZFFVRFlZSjB0dXlkY05lVlN5a3BEWEo4c2E2Skc3NW9vQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFaEp1S09RbE5RMWVhd0RsaHIzREMzTDJHbXo0NW9xa3hKZzJLUmw1NUo5QXhsMjFyV1pPVwpISlh6Q3d1VjRkYWVvK1RYR1RPcVQzNkEwbjlXa2tQbnZBPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
+    allowSchedulingOnControlPlanes: true

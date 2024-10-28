@@ -411,6 +411,9 @@ cluster:
     clusterName: vtalos # Configures the cluster's name.
     # Provides cluster specific network configuration options.
     network:
+        # The CNI used.
+        cni:
+            name: none # Name of CNI to use.
         dnsDomain: cluster.local # The domain used by Kubernetes DNS.
         # The pod subnet CIDR.
         podSubnets:
@@ -418,13 +421,6 @@ cluster:
         # The service subnet CIDR.
         serviceSubnets:
             - 10.96.0.0/12
-        
-        # # The CNI used.
-        # cni:
-        #     name: custom # Name of CNI to use.
-        #     # URLs containing manifests to apply for the CNI.
-        #     urls:
-        #         - https://docs.projectcalico.org/archive/v3.20/manifests/canal.yaml
     token: ptikpq.2ntemgrhlrcabfst # The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster.
     secretboxEncryptionSecret: 74uk4XXCIaxIr268JNZqOerGYgXz4xxGz9LkRywyXR4= # A key used for the [encryption of secret data at rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/).
     # The base64 encoded root certificate authority used by Kubernetes.
@@ -475,10 +471,8 @@ cluster:
         image: registry.k8s.io/kube-controller-manager:v1.31.1 # The container image used in the controller manager manifest.
     # Kube-proxy server-specific configuration options
     proxy:
+        disabled: true # Disable kube-proxy deployment on cluster bootstrap.
         image: registry.k8s.io/kube-proxy:v1.31.1 # The container image used in the kube-proxy manifest.
-        
-        # # Disable kube-proxy deployment on cluster bootstrap.
-        # disabled: false
     # Scheduler server specific configuration options.
     scheduler:
         image: registry.k8s.io/kube-scheduler:v1.31.1 # The container image used in the scheduler manifest.
@@ -549,4 +543,4 @@ cluster:
     #     certLifetime: 1h0m0s # Admin kubeconfig certificate lifetime (default is 1 year).
 
     # # Allows running workload on control-plane nodes.
-    # allowSchedulingOnControlPlanes: true
+    allowSchedulingOnControlPlanes: true

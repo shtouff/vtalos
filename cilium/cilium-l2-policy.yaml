@@ -1,0 +1,15 @@
+---
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: cilium-l2-announcement-policy
+spec:
+  interfaces:
+  - ^eth[0-9]+
+  - ^enp0s[0-9]+
+  externalIPs: true
+  loadBalancerIPs: true
+  # announce only services that have the label announcement: arp
+  serviceSelector:
+    matchLabels:
+      announcement: arp

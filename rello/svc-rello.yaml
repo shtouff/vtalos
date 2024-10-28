@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2024-10-26T00:57:12Z"
+  labels:
+    app: rello
+  name: rello
+  namespace: rello
+  resourceVersion: "528994"
+  uid: 2f0e69b5-5011-42a5-982a-e9be6fa3a2ee
+spec:
+  clusterIP: 10.104.165.42
+  clusterIPs:
+  - 10.104.165.42
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: rello
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

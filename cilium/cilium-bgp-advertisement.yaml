@@ -1,0 +1,22 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPAdvertisement
+metadata:
+  name: cilium-bgp-advertisements
+  labels:
+    advertise: bgp
+spec:
+  advertisements:
+    - advertisementType: "Service"
+      service:
+        addresses:
+          - ExternalIP
+          - LoadBalancerIP
+      # we need a selector here, even if its with a NotIn and a dummy label.
+      selector:
+#        matchLabels:
+#          cilium.io/ingress: "true"
+      matchExpressions:
+        - key: "announcement"
+          operator: "NotIn"
+          values:
+            - "arp"
