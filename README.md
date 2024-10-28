@@ -1,14 +1,14 @@
 # Context
 
 This install is using 4 VMs, with static IPs:
- - 3 controlplane
+ - 3 controlplanes
  - 1 worker
 
 All those VMs are using virtualbox, configured to have their 1st NIC bridged on the host network, with the parameter `promiscuous=Allow All`.
 
-They use PXE.
+They use PXE. (iPXE config is out of this scope)
 
-The endpoint (which will be used to talk to the API server) will be an highly available IP, shared between controlplane nodes using a L2 technique.
+The kubernetes endpoint (which will be used to talk to the API server) will be an highly available IP, shared between controlplane nodes using a L2 announcement.
 
 Finally, we will use `cilium` as CNI, with kube-proxy replacement mode, with `hubble` enabled (obersvability, service-mesh) and with L2 (arp) and L3 (bgp) announcement capabilities.
 
@@ -40,9 +40,7 @@ It will generate 3 files:
  - controlplane.yaml
  - worker.yaml
 
-Do not loose `talosconfig`, otherwise you'll be unable to manage your cluster.
-
-`controlplane.yaml` and `worker.yaml` can be regenerated.
+Those 3 files can be regenerated at any time.
 
 `vtalos` is the name of the cluster, and is called `context` by Talos.
 
@@ -86,8 +84,8 @@ Then, run:
 
     talosctl machineconfig patch controlplane.yaml --patch @talos-cp-1.patch --output talos-cp-1.yaml
 
-
 This will generate a talos-cp-1.yaml, derived from controlplane.yaml, including all the specifics from the patch file. Do the same for the 2 other controlplane nodes.
+
 
 Then, do the same for workers nodes. Here, we want static IP adressing as well, but not the shared VIP.
 
@@ -132,7 +130,7 @@ Then, install the other controlplanes and workers using `apply-config`. Do not r
 
 # Get kubectl config
 
-Save the confil file into `./kubeconfig`:
+Save the `kubectl` config file into `./kubeconfig`:
 
     talosctl kubeconfig ./kubeconfig -n 192.168.42.210
 
@@ -147,7 +145,7 @@ At this stage, nodes aren't ready because they lack a CNI. Notably, they won't b
 
 We need to install `cilium` to make them ready.
 
-First, install `helm` client then run:
+First, install `helm` client, then run:
 
 ```
 helm template \
@@ -170,7 +168,7 @@ helm template \
     --set hubble.relay.enabled=true \
     --set hubble.ui.enabled=true \
     --set bgpControlPlane.enabled=true \
-> cilium/helm-resources.yaml
+> helm-cilium.yaml
 ```
 
 Then run:
@@ -179,7 +177,7 @@ Then run:
     # wait a bit
     cilium status
 
-When cilium status is all OK (fully green), you can deploy some other cilium objects:
+When cilium status is all OK (fully green), you can deploy some other cilium objects, that will be use by our demo application (`rello`):
 
     kubectl apply -f cilium -R
 
@@ -199,4 +197,22 @@ Run:
 
 Test it using `curl` and the various endpoints we created (LB, ingress, NodePort)
 
+Example:
+
+    curl -i http://42.42.42.43/app/hello?name=foo
+
+The result should look like:
+
+    HTTP/1.1 200 OK
+    date: Mon, 28 Oct 2024 14:30:03 GMT
+    server: envoy
+    content-length: 62
+    content-type: application/json
+    x-envoy-upstream-service-time: 1
+    
+    {"msg":"Hello Foo","views":1,"host":"rello-b6d567c5c-dc4sj"}
+
+with the `views` field incremented by each call (that's why we use redis).
+
+Notice that the `server: envoy` header, which implies we reached the demo app via an ingress provided by `cilium`: `envoy`. Using a pure LoadBalancer or NodePort service should reveal another value for this header.
 
