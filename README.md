@@ -25,6 +25,7 @@ Do not loose this file, otherwise you won't be able to manage your cluster.
 
 Do not store it to git as it contains secrets. Use a vault instead.
 
+
 # Generate configs
 
 Choose a future IP for the endpoint, in the same network as the host one. Say 192.168.42.210.
@@ -55,6 +56,7 @@ Inject the endpoints to the config:
     talosctl config endpoint 192.168.42.201 192.168.42.202 192.168.42.203
 
 Those endpoints are the IPs of the controlplane nodes, _not_ the kubernetes endpoint we chose earlier (otherwise the `etcd` cluster will not work correctly).
+
 
 # Patch nodes config files
 
@@ -128,6 +130,17 @@ Once the 1st controlplane node is ready, it's time to bootstrap the cluster. Thi
 Then, install the other controlplanes and workers using `apply-config`. Do not run `bootstrap` again !
 
 
+# Get kubectl config
+
+Save the confil file into `./kubeconfig`:
+
+    talosctl kubeconfig ./kubeconfig -n 192.168.42.210
+
+From now, if the env var `KUBECONFIG` exists and targets this file, `kubectl` (and other clients like `k9s`) will target the `vtalos` cluster.
+
+    export KUBECONFIG=$PWD/kubeconfig
+
+
 # Install cilium
 
 At this stage, nodes aren't ready because they lack a CNI. Notably, they won't be able to run some user workloads (pods).
@@ -142,7 +155,6 @@ helm template \
     cilium/cilium \
     --namespace kube-system \
     --set ipam.mode=kubernetes \
-    # replace kube-proxy \
     --set kubeProxyReplacement=true \
     --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
     --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
@@ -163,15 +175,27 @@ helm template \
 
 Then run:
 
-    kubectl apply -f cilium/helm-resources.yaml
-    kubectl apply -f cilium/cilium*.yaml
+    kubectl apply -f helm-cilium.yaml
+    # wait a bit
+    cilium status
+
+When cilium status is all OK (fully green), you can deploy some other cilium objects:
+
+    kubectl apply -f cilium -R
+
+
+From now, you can use `hubble`, the observability layer  of `cilium`, by running:
+
+    cilium hubble ui
+
+This will relay your local port 12000 to the huble UI service and will open your browser to this URL: http://127.0.0.1:12000
 
 
 # The rello app
 
 Run:
 
-    kubectl apply -f rello/*.yaml
+    kubectl apply -f rello -R
 
 Test it using `curl` and the various endpoints we created (LB, ingress, NodePort)
 

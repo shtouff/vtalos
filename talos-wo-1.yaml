@@ -64,3 +64,4 @@ cluster:
             kubernetes:
                 disabled: true
             service: {}
+    allowSchedulingOnControlPlanes: true

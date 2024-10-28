@@ -15,8 +15,8 @@ spec:
       selector:
 #        matchLabels:
 #          cilium.io/ingress: "true"
-      matchExpressions:
-        - key: "announcement"
-          operator: "NotIn"
-          values:
-            - "arp"
+        matchExpressions:
+          - key: "announcement"
+            operator: "NotIn"
+            values:
+              - "arp"
