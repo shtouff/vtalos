@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPClusterConfig
+metadata:
+  name: cilium-bgp-mikrotik-config
+spec:
+#  nodeSelector:
+#    matchLabels:
+#      rack: rack0
+  bgpInstances:
+  - name: "instance-64542"
+    localASN: 64542
+    peers:
+      - name: "mk6-h-lvrdn-name"
+        peerASN: 64513
+        peerAddress: 192.168.42.1
+        peerConfigRef:
+          name: "cilium-peer"

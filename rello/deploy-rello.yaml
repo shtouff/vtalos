@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: rello
+  name: rello
+  namespace: rello
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rello
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: rello
+    spec:
+      containers:
+      - image: shtouff/rello:0.2
+        name: rello
+        env:
+        - name: RELLO_REDIS_HOST
+          value: redis
+        - name: RELLO_REDIS_PORT
+          value: "6379"
+        - name: RELLO_REDIS_DB
+          value: "0"
+

@@ -1,0 +1,15 @@
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: "cilium-lb-ip-pool-bgp"
+spec:
+  allowFirstLastIPs: "Yes"
+  blocks:
+    - start: 42.42.42.42
+      stop: 42.42.42.50
+  serviceSelector:
+    matchExpressions:
+      - key: "announcement"
+        operator: "NotIn"
+        values:
+          - "arp"

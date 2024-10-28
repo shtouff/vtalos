@@ -4,11 +4,13 @@ This install is using 4 VMs, with static IPs:
  - 3 controlplane
  - 1 worker
 
-All those VMs are using virtualbox, configured to have their 1st NIC bridged on the host network, with the parameter `promiscuous=all`.
+All those VMs are using virtualbox, configured to have their 1st NIC bridged on the host network, with the parameter `promiscuous=Allow All`.
 
 They use PXE.
 
 The endpoint (which will be used to talk to the API server) will be an highly available IP, shared between controlplane nodes using a L2 technique.
+
+Finally, we will use `cilium` as CNI, with kube-proxy replacement mode, with `hubble` enabled (obersvability, service-mesh) and with L2 (arp) and L3 (bgp) announcement capabilities.
 
 
 # Generate secrets
@@ -23,13 +25,14 @@ Do not loose this file, otherwise you won't be able to manage your cluster.
 
 Do not store it to git as it contains secrets. Use a vault instead.
 
+
 # Generate configs
 
 Choose a future IP for the endpoint, in the same network as the host one. Say 192.168.42.210.
 
-Now run:
+Now run: (use the schedule-on-controlplanes patch only if you want to save some resource and avoid having dedicated workers)
 
-    talosctl gen config --with-secrets secrets.yaml vtalos https://192.168.42.210:6443
+    talosctl gen config --with-secrets secrets.yaml --config-patch @cilium-no-kube-proxy.patch --config-patch @schedule-on-controlplanes.patch vtalos https://192.168.42.210:6443
 
 It will generate 3 files:
 
@@ -53,6 +56,7 @@ Inject the endpoints to the config:
     talosctl config endpoint 192.168.42.201 192.168.42.202 192.168.42.203
 
 Those endpoints are the IPs of the controlplane nodes, _not_ the kubernetes endpoint we chose earlier (otherwise the `etcd` cluster will not work correctly).
+
 
 # Patch nodes config files
 
@@ -123,4 +127,76 @@ Once the 1st controlplane node is ready, it's time to bootstrap the cluster. Thi
 
     talosctl -n 192.168.42.201 bootstrap 
 
-the insecure flag instructs talosctl not to use TLS, since 
+Then, install the other controlplanes and workers using `apply-config`. Do not run `bootstrap` again !
+
+
+# Get kubectl config
+
+Save the confil file into `./kubeconfig`:
+
+    talosctl kubeconfig ./kubeconfig -n 192.168.42.210
+
+From now, if the env var `KUBECONFIG` exists and targets this file, `kubectl` (and other clients like `k9s`) will target the `vtalos` cluster.
+
+    export KUBECONFIG=$PWD/kubeconfig
+
+
+# Install cilium
+
+At this stage, nodes aren't ready because they lack a CNI. Notably, they won't be able to run some user workloads (pods).
+
+We need to install `cilium` to make them ready.
+
+First, install `helm` client then run:
+
+```
+helm template \
+    cilium \
+    cilium/cilium \
+    --namespace kube-system \
+    --set ipam.mode=kubernetes \
+    --set kubeProxyReplacement=true \
+    --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+    --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+    --set cgroup.autoMount.enabled=false \
+    --set cgroup.hostRoot=/sys/fs/cgroup \
+    --set k8sServiceHost=localhost \
+    --set k8sServicePort=7445 \
+    --set ingressController.enabled=true \
+    --set ingressController.loadbalancerMode=dedicated \
+    --set l2announcements.enabled=true \
+    --set k8sClientRateLimit.qps=100 \
+    --set k8sClientRateLimit.burst=120 \
+    --set hubble.relay.enabled=true \
+    --set hubble.ui.enabled=true \
+    --set bgpControlPlane.enabled=true \
+> cilium/helm-resources.yaml
+```
+
+Then run:
+
+    kubectl apply -f helm-cilium.yaml
+    # wait a bit
+    cilium status
+
+When cilium status is all OK (fully green), you can deploy some other cilium objects:
+
+    kubectl apply -f cilium -R
+
+
+From now, you can use `hubble`, the observability layer  of `cilium`, by running:
+
+    cilium hubble ui
+
+This will relay your local port 12000 to the huble UI service and will open your browser to this URL: http://127.0.0.1:12000
+
+
+# The rello app
+
+Run:
+
+    kubectl apply -f rello -R
+
+Test it using `curl` and the various endpoints we created (LB, ingress, NodePort)
+
+
