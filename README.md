@@ -214,5 +214,44 @@ The result should look like:
 
 with the `views` field incremented by each call (that's why we use redis).
 
-Notice that the `server: envoy` header, which implies we reached the demo app via an ingress provided by `cilium`: `envoy`. Using a pure LoadBalancer or NodePort service should reveal another value for this header.
+Notice that the `server: envoy` header implies we reached the demo app via an ingress provided by `cilium`: `envoy`. Using a pure LoadBalancer or NodePort service should reveal another value for this header.
+
+# Security considerations
+
+In the rello namespace, we enforce 2 security features:
+
+ - PSA: Pod Security Admission
+ - NetworkPolicies
+
+## Pod Security Admission
+
+PSA deprecated the old PSP (PodSecurityPolicy). Basically it defines 3 levels:
+
+ - privileged: a pod can do anything it likes: priv escalation, host network, run as root, ....
+ - baseline: this level enforces some basic limits: no host network, drops of some capabilities, ...
+ - restricted: a pod is very restricted
+
+A namespace can set this level and a policy among:
+
+ - warning: accept the pod but output a warning 
+ - audit: accept the pod but log a warning
+ - enforce: refuse the pod
+
+For the rello namespace, we chose to enforce the `baseline` level. See https://kubernetes.io/docs/concepts/security/pod-security-admission/ for more details.
+
+
+## Network Policies
+
+See https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
+In rello, we chose to have a DENY ALL policy by default. No ingress nor egress traffic is allowed inside this namespace. Then, we allowed the strict minimum policies for the app to behave correctly:
+
+ - ingress rello from any, tcp/8000
+ - egress from rello to kube-system/coredns, tcp/53 and udp/53
+ - egress from rello to redis, tcp/6379
+ - ingress redis from rello, tcp/6379
+
+The last 2 policies seem to be very redundant, but it's mandatory since we chose deny by default both for ingress & egress traffic. Other strategies might be chosen.
+
+See `rello/np-*.yaml` for details.
 

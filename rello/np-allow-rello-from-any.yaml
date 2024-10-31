@@ -1,0 +1,15 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: rello
+  name: allow-rello-from-any
+spec:
+  podSelector: 
+    matchLabels:
+      app: rello
+  policyTypes: ["Ingress"]
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 8000

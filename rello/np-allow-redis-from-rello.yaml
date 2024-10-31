@@ -1,0 +1,19 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: rello
+  name: allow-redis-from-rello
+spec:
+  podSelector: 
+    matchLabels:
+      app: redis
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rello
+    ports:
+    - protocol: TCP
+      port: 6379
