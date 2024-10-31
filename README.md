@@ -17,7 +17,7 @@ Finally, we will use `cilium` as CNI, with kube-proxy replacement mode, with `hu
 
 Run:
 
-    talosctl gen secrets -o secrets.yaml
+    $ talosctl gen secrets -o secrets.yaml
 
 This file will contain the secrets that are needed by various parts of the cluster. Remember, `talosctl` and the cluster, when bootstraped, use mutual TLS to maximize security.
 
@@ -32,7 +32,7 @@ Choose a future IP for the endpoint, in the same network as the host one. Say 19
 
 Now run: (use the schedule-on-controlplanes patch only if you want to save some resource and avoid having dedicated workers)
 
-    talosctl gen config --with-secrets secrets.yaml --config-patch @cilium-no-kube-proxy.patch --config-patch @schedule-on-controlplanes.patch vtalos https://192.168.42.210:6443
+    $ talosctl gen config --with-secrets secrets.yaml --config-patch @cilium-no-kube-proxy.patch --config-patch @schedule-on-controlplanes.patch vtalos https://192.168.42.210:6443
 
 It will generate 3 files:
 
@@ -46,12 +46,12 @@ Those 3 files can be regenerated at any time.
 
 From now, every command that needs a `--talosconfig <file>` (when not using the `--insecure` flag) can omit this flag if the `TALOSCONFIG` env var exists.
 
-    export TALOSCONFIG=$PWD/talosconfig
+    $ export TALOSCONFIG=$PWD/talosconfig
 
 
 Inject the endpoints to the config:
 
-    talosctl config endpoint 192.168.42.201 192.168.42.202 192.168.42.203
+    $ talosctl config endpoint 192.168.42.201 192.168.42.202 192.168.42.203
 
 Those endpoints are the IPs of the controlplane nodes, _not_ the kubernetes endpoint we chose earlier (otherwise the `etcd` cluster will not work correctly).
 
@@ -63,7 +63,7 @@ Before bootstraping the cluster, we want to `patch` config files with some parti
 Example of patch for a controlplane node:
 
 ```
-cat talos-cp-1.patch 
+$ cat talos-cp-1.patch 
 machine:
   network:
     hostname: talos-cp-1
@@ -82,7 +82,7 @@ machine:
 
 Then, run:
 
-    talosctl machineconfig patch controlplane.yaml --patch @talos-cp-1.patch --output talos-cp-1.yaml
+    $ talosctl machineconfig patch controlplane.yaml --patch @talos-cp-1.patch --output talos-cp-1.yaml
 
 This will generate a talos-cp-1.yaml, derived from controlplane.yaml, including all the specifics from the patch file. Do the same for the 2 other controlplane nodes.
 
@@ -106,7 +106,7 @@ machine:
 
 Then, run:
 
-    talosctl machineconfig patch worker.yaml --patch @talos-wo-1.patch --output talos-wo-1.yaml
+    $ talosctl machineconfig patch worker.yaml --patch @talos-wo-1.patch --output talos-wo-1.yaml
 
 
 # Install the nodes
@@ -115,7 +115,7 @@ In this section, we assume each node to be installed has booted Talos OS success
 
 Install the 1st controlplane node:
 
-    talosctl -n 192.168.42.142 apply-config --file talos-cp-1.yaml --insecure
+    $ talosctl -n 192.168.42.142 apply-config --file talos-cp-1.yaml --insecure
 
 A few remarks:
  - the `insecure` flag instructs talosctl to reach the node directly using the TCP port 50000. This is mandatory as long as the cluster is not formed yet.
@@ -123,7 +123,7 @@ A few remarks:
 
 Once the 1st controlplane node is ready, it's time to bootstrap the cluster. This needs to be run only once !
 
-    talosctl -n 192.168.42.201 bootstrap 
+    $ talosctl -n 192.168.42.201 bootstrap 
 
 Then, install the other controlplanes and workers using `apply-config`. Do not run `bootstrap` again !
 
@@ -132,11 +132,11 @@ Then, install the other controlplanes and workers using `apply-config`. Do not r
 
 Save the `kubectl` config file into `./kubeconfig`:
 
-    talosctl kubeconfig ./kubeconfig -n 192.168.42.210
+    $ talosctl kubeconfig ./kubeconfig -n 192.168.42.210
 
 From now, if the env var `KUBECONFIG` exists and targets this file, `kubectl` (and other clients like `k9s`) will target the `vtalos` cluster.
 
-    export KUBECONFIG=$PWD/kubeconfig
+    $ export KUBECONFIG=$PWD/kubeconfig
 
 
 # Install cilium
@@ -148,7 +148,7 @@ We need to install `cilium` to make them ready.
 First, install `helm` client, then run:
 
 ```
-helm template \
+$ helm template \
     cilium \
     cilium/cilium \
     --namespace kube-system \
@@ -173,18 +173,18 @@ helm template \
 
 Then run:
 
-    kubectl apply -f helm-cilium.yaml
+    $ kubectl apply -f helm-cilium.yaml
     # wait a bit
-    cilium status
+    $ cilium status
 
 When cilium status is all OK (fully green), you can deploy some other cilium objects, that will be use by our demo application (`rello`):
 
-    kubectl apply -f cilium -R
+    $ kubectl apply -f cilium -R
 
 
 From now, you can use `hubble`, the observability layer  of `cilium`, by running:
 
-    cilium hubble ui
+    $ cilium hubble ui
 
 This will relay your local port 12000 to the huble UI service and will open your browser to this URL: http://127.0.0.1:12000
 
@@ -193,13 +193,13 @@ This will relay your local port 12000 to the huble UI service and will open your
 
 Run:
 
-    kubectl apply -f rello -R
+    $ kubectl apply -f rello -R
 
 Test it using `curl` and the various endpoints we created (LB, ingress, NodePort)
 
 Example:
 
-    curl -i http://42.42.42.43/app/hello?name=foo
+    $ curl -i http://42.42.42.43/app/hello?name=foo
 
 The result should look like:
 
@@ -254,4 +254,42 @@ In rello, we chose to have a DENY ALL policy by default. No ingress nor egress t
 The last 2 policies seem to be very redundant, but it's mandatory since we chose deny by default both for ingress & egress traffic. Other strategies might be chosen.
 
 See `rello/np-*.yaml` for details.
+
+NB: when implementing the ALLOW policies that are needed for the app to work correctly, it is convenient to use `hubble` (the `cilium` observability plugin):
+
+    $ cilium hubble port-forward &
+    $ hubble observe -f --verdict DROP
+
+Step by step, you can then add the policies that are missing.
+
+Example of output:
+
+    Oct 31 13:46:27.175: rello/rello-7cc459b479-p5trp:53746 (ID:22268) <> rello/redis-5657588f58-98bmg:6379 (ID:52236) Policy denied DROPPED (TCP Flags: SYN)
+    Oct 31 13:46:28.199: rello/rello-7cc459b479-p5trp:53746 (ID:22268) <> rello/redis-5657588f58-98bmg:6379 (ID:52236) policy-verdict:none INGRESS DENIED (TCP Flags: SYN)
+
+The corresponding ALLOW policy would be:
+
+```
+$ cat rello/np-allow-redis-from-rello.yaml
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: rello
+  name: allow-redis-from-rello
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes: ["Ingress"]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rello
+    ports:
+    - protocol: TCP
+      port: 6379
+```
 
